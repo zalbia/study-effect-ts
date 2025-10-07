@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, pipe } from "effect";
 import type { UnknownException } from "effect/Cause";
 
 const fetchRequest: Effect.Effect<Response, UnknownException> = Effect.promise(() =>
@@ -8,6 +8,15 @@ const fetchRequest: Effect.Effect<Response, UnknownException> = Effect.promise((
 const jsonResponse = (response: Response) =>
   Effect.promise(() => response.json());
 
-const main = Effect.flatMap(fetchRequest, jsonResponse);
+const savePokemon = (pokemon: unknown) =>
+  Effect.tryPromise(() =>
+    fetch("/api/pokemon", { body: JSON.stringify(pokemon) })
+  )
+
+const main = pipe(
+  fetchRequest,
+  Effect.flatMap(jsonResponse),
+  Effect.flatMap(savePokemon)
+)
 
 Effect.runPromise(main);
