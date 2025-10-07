@@ -15,7 +15,7 @@ const jsonResponse = (response: Response) =>
     catch: () => new JsonError(),
   });
 
-const main = Effect.gen(function* () {
+const program = Effect.gen(function* () {
   const response = yield* fetchRequest;
   if (!response.ok) {
     return yield* new FetchError();
@@ -24,4 +24,11 @@ const main = Effect.gen(function* () {
   return yield* jsonResponse(response);
 });
 
-Effect.runPromise(main);
+const main = program.pipe(
+  Effect.catchTags({
+    FetchError: () => Effect.succeed("Fetch error"),
+    JsonError: () => Effect.succeed("Json error"),
+  })
+);
+
+Effect.runPromise(main).then(console.log);
