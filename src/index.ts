@@ -15,16 +15,13 @@ const jsonResponse = (response: Response) =>
     catch: () => new JsonError(),
   });
 
-const main = fetchRequest.pipe(
-  Effect.filterOrFail(
-    response => response.ok,
-    () => new FetchError()
-  ),
-  Effect.flatMap(jsonResponse),
-  Effect.catchTags({
-    FetchError: () => Effect.succeed("Fetch error"),
-    JsonError: () => Effect.succeed("Json error"),
-  })
-);
+const main = Effect.gen(function* () {
+  const response = yield* fetchRequest;
+  if (!response.ok) {
+    return yield* new FetchError();
+  }
+
+  return yield* jsonResponse(response);
+});
 
 Effect.runPromise(main);
