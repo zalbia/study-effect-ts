@@ -1,4 +1,5 @@
 import { Effect, Data } from "effect";
+import { decodePokemon } from "./schema.js";
 
 class FetchError extends Data.TaggedError("FetchError")<Readonly<{}>> {}
 
@@ -21,7 +22,9 @@ const program = Effect.gen(function* () {
     return yield* new FetchError();
   }
 
-  return yield* jsonResponse(response);
+  const json = yield* jsonResponse(response);
+
+  return yield* decodePokemon(json);
 });
 
 const main = program.pipe(
