@@ -1,25 +1,24 @@
 import { Effect, pipe } from "effect";
-import type { UnknownException } from "effect/Cause";
 
-const fetchRequest: Effect.Effect<Response, UnknownException> = Effect.promise(() =>
-  fetch("https://pokeapi.co/api/v2/pokemon/garchomp/")
-);
+interface FetchError {
+  readonly _tag: "FetchError";
+}
+
+interface JsonError {
+  readonly _tag: "JsonError";
+}
+
+const fetchRequest = Effect.tryPromise({
+  try: () => fetch("https://pokeapi.co/api/v2/pokemon/garchomp/"),
+  catch: (): FetchError => ({ _tag: "FetchError" }),
+});
 
 const jsonResponse = (response: Response) =>
-  Effect.promise(() => response.json());
+  Effect.tryPromise({
+    try: () => response.json(),
+    catch: (): JsonError => ({ _tag: "JsonError" }),
+  });
 
-const savePokemon = (pokemon: unknown) =>
-  Effect.tryPromise(() =>
-    fetch("/api/pokemon", { body: JSON.stringify(pokemon) })
-  )
-
-const main = pipe(
-  fetchRequest,
-  Effect.flatMap(jsonResponse),
-  Effect.flatMap(savePokemon),
-  Effect.catchTag("UnknownException", () =>
-    Effect.succeed("There was an error")
-  )
-)
+const main = fetchRequest.pipe(Effect.flatMap(jsonResponse));
 
 Effect.runPromise(main);
