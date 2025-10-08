@@ -38,4 +38,14 @@ export class PokeApi extends Context.Tag("PokeApi")<PokeApi, PokeApiImpl>() {
       return yield* Schema.decodeUnknown(Pokemon)(json);
     }),
   });
+
+  static readonly Test = PokeApi.of({
+    getPokemon: Schema.decodeUnknown(Pokemon)({
+      id: 1,
+      height: 10,
+      weight: 10,
+      order: 1,
+      name: "myname",
+    }),
+  });
 }
