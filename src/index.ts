@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { PokeApi, PokeApiLive } from "./PokeApi.js";
+import { PokeApi } from "./PokeApi.js";
 
 const program = Effect.gen(function* () {
   const pokeApi = yield* PokeApi;
@@ -11,7 +11,7 @@ const main = program.pipe(
     FetchError: () => Effect.succeed("Fetch error"),
     JsonError: () => Effect.succeed("Json error"),
   }),
-  Effect.provideService(PokeApi, PokeApiLive)
+  Effect.provideService(PokeApi, PokeApi.Live)
 );
 
 Effect.runPromise(main).then(console.log);

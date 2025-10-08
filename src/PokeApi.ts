@@ -3,14 +3,12 @@ import type { ConfigError } from "effect/ConfigError";
 import { FetchError, JsonError } from "./errors.js";
 import { Pokemon } from "./schemas.js";
 
-export interface PokeApi {
+interface PokeApiImpl {
   readonly getPokemon: Effect.Effect<
     Pokemon,
     FetchError | JsonError | ParseResult.ParseError | ConfigError
   >;
 }
-
-export const PokeApi = Context.GenericTag<PokeApi>("PokeApi");
 
 const fetchRequest = (baseUrl: string) =>
   Effect.tryPromise({
@@ -26,16 +24,18 @@ const jsonResponse = (response: Response) =>
 
 const config = Config.string("BASE_URL");
 
-export const PokeApiLive = PokeApi.of({
-  getPokemon: Effect.gen(function* () {
-    const baseUrl = yield* config;
-    const response = yield* fetchRequest(baseUrl);
-    if (!response.ok) {
-      return yield* new FetchError();
-    }
+export class PokeApi extends Context.Tag("PokeApi")<PokeApi, PokeApiImpl>() {
+  static readonly Live = PokeApi.of({
+    getPokemon: Effect.gen(function* () {
+      const baseUrl = yield* config;
+      const response = yield* fetchRequest(baseUrl);
+      if (!response.ok) {
+        return yield* new FetchError();
+      }
 
-    const json = yield* jsonResponse(response);
+      const json = yield* jsonResponse(response);
 
-    return yield* Schema.decodeUnknown(Pokemon)(json);
-  }),
-});
+      return yield* Schema.decodeUnknown(Pokemon)(json);
+    }),
+  });
+}
