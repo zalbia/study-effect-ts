@@ -1,43 +1,38 @@
-import { Config, Context, Effect, Schema, type ParseResult } from "effect";
-import type { ConfigError } from "effect/ConfigError";
+import { Context, Effect, Layer, Schema } from "effect";
 import { FetchError, JsonError } from "./errors.js";
 import { Pokemon } from "./schemas.js";
+import { PokemonCollection } from "./PokemonCollection.js";
+import { BuildPokeApiUrl } from "./BuildPokeApiUrl.js";
 
-interface PokeApiImpl {
-  readonly getPokemon: Effect.Effect<
-    Pokemon,
-    FetchError | JsonError | ParseResult.ParseError | ConfigError
-  >;
-}
+const make = {
+  getPokemon: Effect.gen(function* () {
+    const pokemonCollection = yield* PokemonCollection;
+    const buildPokeApiUrl = yield* BuildPokeApiUrl;
 
-const fetchRequest = (baseUrl: string) =>
-  Effect.tryPromise({
-    try: () => fetch(`${baseUrl}/api/v2/pokemon/garchomp/`),
-    catch: () => new FetchError(),
-  });
+    const requestUrl = buildPokeApiUrl({
+      name: pokemonCollection[0],
+    });
 
-const jsonResponse = (response: Response) =>
-  Effect.tryPromise({
-    try: () => response.json(),
-    catch: () => new JsonError(),
-  });
+    const response = yield* Effect.tryPromise({
+      try: () => fetch(requestUrl),
+      catch: () => new FetchError(),
+    });
 
-const config = Config.string("BASE_URL");
+    if (!response.ok) {
+      return yield* new FetchError();
+    }
 
-export class PokeApi extends Context.Tag("PokeApi")<PokeApi, PokeApiImpl>() {
-  static readonly Live = PokeApi.of({
-    getPokemon: Effect.gen(function* () {
-      const baseUrl = yield* config;
-      const response = yield* fetchRequest(baseUrl);
-      if (!response.ok) {
-        return yield* new FetchError();
-      }
+    const json = yield* Effect.tryPromise({
+      try: () => response.json(),
+      catch: () => new JsonError(),
+    });
 
-      const json = yield* jsonResponse(response);
+    return yield* Schema.decodeUnknown(Pokemon)(json);
+  }),
+};
 
-      return yield* Schema.decodeUnknown(Pokemon)(json);
-    }),
-  });
+export class PokeApi extends Context.Tag("PokeApi")<PokeApi, typeof make>() {
+  static readonly Live = Layer.succeed(this, make);
 
   static readonly Test = PokeApi.of({
     getPokemon: Schema.decodeUnknown(Pokemon)({
