@@ -38,7 +38,9 @@ export class PokeApi extends Context.Tag("PokeApi")<
   Effect.Effect.Success<typeof make>
 >() {
   static readonly Live = Layer.effect(this, make).pipe(
-    Layer.provide(Layer.mergeAll(PokemonCollection.Live, BuildPokeApiUrl.Live))
+    Layer.provide(
+      Layer.mergeAll(PokemonCollection.Default, BuildPokeApiUrl.Default)
+    )
   );
 
   static readonly Mock = Layer.succeed(
