@@ -10,3 +10,4 @@ console.log(authorDecoded);
 
 const authorEncoded = Schema.encodeSync(Author)(authorDecoded);
 console.log(authorEncoded);
+ 
